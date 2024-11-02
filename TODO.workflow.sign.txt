@@ -1,0 +1,97 @@
+name: Go
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
+    steps:
+    - uses: actions/checkout@v4.2.2
+
+    - name: Setup Go
+      uses: actions/setup-go@v5.1.0
+      with:
+        go-version: '1.23.2'
+
+    - name: Install dependencies
+      run: go get .
+
+    - name: Build for Linux
+      run: go build -o gogowork-linux ./...
+
+    - name: Build for Windows
+      run: GOOS=windows GOARCH=amd64 go build -o gogowork-windows.exe ./...
+
+    - name: Test
+      run: go test -v ./...
+
+    - name: GPG Sign Linux Binary
+      run: |
+        gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --output gogowork-linux.sig --detach-sign gogowork-linux
+      env:
+        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}  # Store your passphrase in secrets
+
+    - name: GPG Sign Windows Binary
+      run: |
+        gpg --batch --yes --passphrase "$GPG_PASSPHRASE" --output gogowork-windows.exe.sig --detach-sign gogowork-windows.exe
+      env:
+        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1.1.4
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release ${{ github.run_number }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Linux Release Asset
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./gogowork-linux
+        asset_name: gogowork-linux-v${{ github.run_number }} # Append version
+        asset_content_type: application/octet-stream
+
+    - name: Upload Linux Signature Asset
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./gogowork-linux.sig
+        asset_name: gogowork-linux-v${{ github.run_number }}.sig # Append version
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows Release Asset
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./gogowork-windows.exe
+        asset_name: gogowork-windows-v${{ github.run_number }}.exe # Append version
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows Signature Asset
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./gogowork-windows.exe.sig
+        asset_name: gogowork-windows-v${{ github.run_number }}.exe.sig # Append version
+        asset_content_type: application/octet-stream
