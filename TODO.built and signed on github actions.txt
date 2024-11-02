@@ -1,0 +1,1 @@
+https://tsmx.net/npmjs-built-and-signed-on-github-actions/
