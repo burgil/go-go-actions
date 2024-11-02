@@ -52,6 +52,7 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./gogowork-linux
         asset_name: gogowork-linux-v${{ github.run_number }} # Append version
+        asset_content_type: application/octet-stream # Specify content type
 
     - name: Upload Windows Release Asset
       uses: actions/upload-release-asset@v1.0.2
@@ -61,3 +62,4 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./gogowork-windows.exe
         asset_name: gogowork-windows-v${{ github.run_number }}.exe # Append version
+        asset_content_type: application/octet-stream # Specify content type
